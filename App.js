@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Image, FlatList, TouchableOpacity, TextInput, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import {
+  View, Text, Image, FlatList, TouchableOpacity, TextInput,
+  StyleSheet, ScrollView, SafeAreaView, Modal, Alert
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// Cores do Grifferz Premium
+// ============ CORES ============
 const C = {
   bg: '#0a0a0a',
   prata: '#c0c0c0',
@@ -12,272 +15,449 @@ const C = {
   branco: '#ffffff',
   card: '#111111',
   borda: '#1a1a1a',
+  sucesso: '#4caf50',
 };
 
-const POSTS = [
-  { id: '1', brand: 'Gucci', image: 'https://picsum.photos/400/400?random=1', desc: 'Nova coleção Primavera 2026 ✨', likes: 1243 },
-  { id: '2', brand: 'Balenciaga', image: 'https://picsum.photos/400/400?random=2', desc: 'Sneakers oversized - drop limitado 🔥', likes: 2341 },
-  { id: '3', brand: 'Prada', image: 'https://picsum.photos/400/400?random=3', desc: 'Minimalismo italiano em cada detalhe 🤍', likes: 892 },
+// ============ DADOS INICIAIS DAS MARCAS ============
+const MARCAS_INICIAIS = [
+  {
+    id: 'm1', tipo: 'marca', nome: 'Gucci', usuario: '@gucci', bio: 'Luxo italiano desde 1921',
+    foto: 'https://picsum.photos/200?random=10', categoria: 'Luxo',
+    portfolio: ['https://picsum.photos/200?random=101', 'https://picsum.photos/200?random=102'],
+    seguidores: [],
+    posts: [
+      { id: 'p1', imagem: 'https://picsum.photos/400/400?random=1', desc: 'Nova coleção Primavera 2026 ✨', likes: 1243, data: '2h atrás' },
+      { id: 'p2', imagem: 'https://picsum.photos/400/400?random=2', desc: 'Desfile exclusivo em Paris 🗼', likes: 2341, data: '5h atrás' },
+    ]
+  },
+  {
+    id: 'm2', tipo: 'marca', nome: 'Balenciaga', usuario: '@balenciaga', bio: 'Breaking fashion boundaries',
+    foto: 'https://picsum.photos/200?random=13', categoria: 'Streetwear',
+    portfolio: ['https://picsum.photos/200?random=103', 'https://picsum.photos/200?random=104'],
+    seguidores: [],
+    posts: [
+      { id: 'p3', imagem: 'https://picsum.photos/400/400?random=3', desc: 'Sneakers oversized 🔥', likes: 892, data: '8h atrás' },
+    ]
+  },
+  {
+    id: 'm3', tipo: 'marca', nome: 'Prada', usuario: '@prada', bio: 'Elegance and innovation',
+    foto: 'https://picsum.photos/200?random=16', categoria: 'Luxo',
+    portfolio: ['https://picsum.photos/200?random=105'],
+    seguidores: [],
+    posts: [
+      { id: 'p4', imagem: 'https://picsum.photos/400/400?random=4', desc: 'Minimalismo italiano 🤍', likes: 567, data: '12h atrás' },
+    ]
+  },
 ];
 
-const BRANDS = [
-  { id: '1', name: 'Gucci', image: 'https://picsum.photos/200?random=10', category: 'Luxo' },
-  { id: '2', name: 'Balenciaga', image: 'https://picsum.photos/200?random=13', category: 'Streetwear' },
-  { id: '3', name: 'Prada', image: 'https://picsum.photos/200?random=16', category: 'Luxo' },
-  { id: '4', name: 'Off-White', image: 'https://picsum.photos/200?random=19', category: 'Streetwear' },
-];
+// ============ TELA DE LOGIN / CADASTRO ============
+function LoginScreen({ onLogin }) {
+  const [tipo, setTipo] = useState('cliente');
+  const [nome, setNome] = useState('');
+  const [usuario, setUsuario] = useState('');
+  const [bio, setBio] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [foto, setFoto] = useState('https://picsum.photos/200?random=' + Math.floor(Math.random() * 100));
 
-const DROPS = [
-  { id: '1', brand: 'Nike x Supreme', image: 'https://picsum.photos/200/200?random=30', name: 'Air Force 1 Collab', price: 'R$ 1.299' },
-  { id: '2', brand: 'Yeezy', image: 'https://picsum.photos/200/200?random=31', name: 'Boost 350 V2', price: 'R$ 999' },
-];
+  const handleEntrar = () => {
+    if (!nome.trim() || !usuario.trim()) {
+      Alert.alert('Erro', 'Preencha nome e usuário!');
+      return;
+    }
+    const novoUsuario = {
+      id: 'u' + Date.now(),
+      tipo: tipo,
+      nome: nome.trim(),
+      usuario: '@' + usuario.trim().replace('@', ''),
+      bio: bio.trim() || 'Novo no Grifferz',
+      foto: foto,
+      categoria: tipo === 'marca' ? (categoria.trim() || 'Moda') : '',
+      portfolio: tipo === 'marca' ? [] : [],
+      seguidores: [],
+      seguindo: [],
+      posts: tipo === 'marca' ? [] : [],
+    };
+    onLogin(novoUsuario);
+  };
 
-// 1. HOME
-function HomeScreen() {
+  const novaFoto = () => {
+    setFoto('https://picsum.photos/200?random=' + Math.floor(Math.random() * 1000));
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 60 }}>
+        <Text style={styles.logoGrande}>GRIFFERZ</Text>
+        <Text style={{ color: C.prataEscuro, textAlign: 'center', marginBottom: 30 }}>
+          Marketplace de Marcas Independentes
+        </Text>
+
+        {/* Seletor de tipo */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
+          <TouchableOpacity
+            style={[styles.tipoBtn, tipo === 'cliente' && styles.tipoBtnAtivo]}
+            onPress={() => setTipo('cliente')}
+          >
+            <Ionicons name="person" size={20} color={tipo === 'cliente' ? C.branco : C.prataEscuro} />
+            <Text style={{ color: tipo === 'cliente' ? C.branco : C.prataEscuro, marginLeft: 5 }}>Cliente</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tipoBtn, tipo === 'marca' && styles.tipoBtnAtivo]}
+            onPress={() => setTipo('marca')}
+          >
+            <Ionicons name="storefront" size={20} color={tipo === 'marca' ? C.branco : C.prataEscuro} />
+            <Text style={{ color: tipo === 'marca' ? C.branco : C.prataEscuro, marginLeft: 5 }}>Marca</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Foto de perfil */}
+        <View style={{ alignItems: 'center', marginBottom: 20 }}>
+          <Image source={{ uri: foto }} style={styles.fotoLogin} />
+          <TouchableOpacity onPress={novaFoto} style={{ marginTop: 8 }}>
+            <Text style={{ color: C.roxoClaro, fontSize: 12 }}>Nova foto aleatória</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Campos */}
+        <TextInput style={styles.input} placeholder="Nome completo ou Nome da Marca" placeholderTextColor={C.prataEscuro} value={nome} onChangeText={setNome} />
+        <TextInput style={styles.input} placeholder="Usuário (@)" placeholderTextColor={C.prataEscuro} value={usuario} onChangeText={setUsuario} />
+        <TextInput style={styles.input} placeholder="Bio" placeholderTextColor={C.prataEscuro} value={bio} onChangeText={setBio} multiline />
+
+        {tipo === 'marca' && (
+          <TextInput style={styles.input} placeholder="Categoria (ex: Streetwear, Luxo)" placeholderTextColor={C.prataEscuro} value={categoria} onChangeText={setCategoria} />
+        )}
+
+        {/* Botão */}
+        <TouchableOpacity style={styles.btnEntrar} onPress={handleEntrar}>
+          <Text style={{ color: C.branco, fontWeight: '700', fontSize: 16 }}>
+            {tipo === 'marca' ? '🏪 Entrar como Marca' : '👤 Entrar como Cliente'}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={{ color: C.prataEscuro, textAlign: 'center', marginTop: 15, fontSize: 11 }}>
+          Dados salvos localmente neste dispositivo.
+        </Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// ============ TELA HOME (Timeline) ============
+function HomeScreen({ usuario, marcas, setMarcas }) {
+  const [novoPostImagem, setNovoPostImagem] = useState('');
+  const [novoPostDesc, setNovoPostDesc] = useState('');
+  const [mostrarForm, setMostrarForm] = useState(false);
+
+  const adicionarPost = () => {
+    if (!novoPostImagem.trim() || !novoPostDesc.trim()) {
+      Alert.alert('Erro', 'Preencha imagem e descrição!');
+      return;
+    }
+    const marcasAtualizadas = marcas.map(m => {
+      if (m.id === usuario.id) {
+        return {
+          ...m,
+          posts: [...m.posts, {
+            id: 'p' + Date.now(),
+            imagem: novoPostImagem.trim(),
+            desc: novoPostDesc.trim(),
+            likes: 0,
+            data: 'Agora'
+          }]
+        };
+      }
+      return m;
+    });
+    setMarcas(marcasAtualizadas);
+    setNovoPostImagem('');
+    setNovoPostDesc('');
+    setMostrarForm(false);
+  };
+
+  // ✅ CORREÇÃO: Marcas veem TODAS as marcas + seus próprios posts
+  // Clientes veem apenas marcas que seguem
+  let timelinePosts = [];
+  
+  if (usuario.tipo === 'marca') {
+    // Marcas veem posts de TODAS as marcas
+    marcas.forEach(marca => {
+      if (marca.tipo === 'marca') {
+        marca.posts.forEach(p => {
+          timelinePosts.push({ ...p, marcaNome: marca.nome, marcaFoto: marca.foto, marcaId: marca.id });
+        });
+      }
+    });
+  } else {
+    // Clientes veem posts das marcas que seguem
+    marcas.forEach(marca => {
+      if (usuario.seguindo && usuario.seguindo.includes(marca.id)) {
+        marca.posts.forEach(p => {
+          timelinePosts.push({ ...p, marcaNome: marca.nome, marcaFoto: marca.foto, marcaId: marca.id });
+        });
+      }
+    });
+  }
+  
+  timelinePosts.sort((a, b) => b.id.localeCompare(a.id));
+
   const renderPost = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Ionicons name="person-circle" size={24} color={C.roxo} />
-        <Text style={styles.brandName}>{item.brand}</Text>
+        <Image source={{ uri: item.marcaFoto }} style={styles.avatarPequeno} />
+        <Text style={{ color: C.prata, fontWeight: '700', flex: 1 }}>{item.marcaNome}</Text>
+        <Text style={{ color: C.prataEscuro, fontSize: 10 }}>{item.data}</Text>
       </View>
-      <Image source={{ uri: item.image }} style={styles.postImage} />
+      <Image source={{ uri: item.imagem }} style={styles.postImage} />
       <View style={styles.cardFooter}>
-        <Text style={styles.likes}>{item.likes} curtidas</Text>
-        <Text style={styles.desc}><Text style={{ fontWeight: 'bold', color: C.prata }}>{item.brand}</Text> {item.desc}</Text>
+        <Text style={{ color: C.prata, fontWeight: 'bold' }}>{item.likes} curtidas</Text>
+        <Text style={{ color: C.prataEscuro, marginTop: 4 }}>
+          <Text style={{ color: C.prata, fontWeight: '700' }}>{item.marcaNome}</Text> {item.desc}
+        </Text>
       </View>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.logo}>GRIFFERZ</Text>
-      <FlatList data={POSTS} renderItem={renderPost} keyExtractor={item => item.id} />
+      <View style={styles.topBar}>
+        <Text style={styles.logo}>GRIFFERZ</Text>
+        <View style={{ flexDirection: 'row', gap: 15, alignItems: 'center' }}>
+          {usuario.tipo === 'marca' && (
+            <TouchableOpacity onPress={() => setMostrarForm(!mostrarForm)} style={styles.btnNovoPost}>
+              <Ionicons name="add-circle" size={22} color={C.roxo} />
+              <Text style={{ color: C.roxo, marginLeft: 4 }}>Novo Post</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {mostrarForm && usuario.tipo === 'marca' && (
+        <View style={styles.formPost}>
+          <Text style={{ color: C.prata, fontWeight: '700', marginBottom: 8 }}>Criar novo post</Text>
+          <TextInput style={styles.input} placeholder="URL da imagem" placeholderTextColor={C.prataEscuro} value={novoPostImagem} onChangeText={setNovoPostImagem} />
+          <TextInput style={styles.input} placeholder="Descrição do post" placeholderTextColor={C.prataEscuro} value={novoPostDesc} onChangeText={setNovoPostDesc} />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity style={styles.btnPostar} onPress={adicionarPost}>
+              <Text style={{ color: C.branco, fontWeight: '700' }}>Postar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnCancelar} onPress={() => setMostrarForm(false)}>
+              <Text style={{ color: C.prataEscuro }}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {timelinePosts.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+          <Ionicons name="newspaper-outline" size={60} color={C.borda} />
+          <Text style={{ color: C.prataEscuro, textAlign: 'center', marginTop: 15 }}>
+            {usuario.tipo === 'marca'
+              ? 'Nenhum post ainda.\nCrie seu primeiro post!'
+              : 'Siga marcas para ver os posts delas aqui!'}
+          </Text>
+        </View>
+      ) : (
+        <FlatList data={timelinePosts} renderItem={renderPost} keyExtractor={item => item.id} />
+      )}
     </SafeAreaView>
   );
 }
 
-// 2. SEARCHZ
-function SearchzScreen() {
+// ============ TELA SEARCHZ ============
+function SearchzScreen({ usuario, marcas, setUsuario }) {
   const [search, setSearch] = useState('');
-  const filtered = BRANDS.filter(b => b.name.toLowerCase().includes(search.toLowerCase()));
+  
+  // ✅ CORREÇÃO: Marcas e Clientes podem pesquisar todas as marcas
+  const filtered = marcas.filter(m =>
+    m.tipo === 'marca' &&
+    (m.nome.toLowerCase().includes(search.toLowerCase()) ||
+     m.usuario.toLowerCase().includes(search.toLowerCase()) ||
+     m.categoria.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const seguirMarca = (marcaId) => {
+    if (!usuario.seguindo) usuario.seguindo = [];
+    if (usuario.seguindo.includes(marcaId)) {
+      usuario.seguindo = usuario.seguindo.filter(id => id !== marcaId);
+    } else {
+      usuario.seguindo.push(marcaId);
+    }
+    setUsuario({ ...usuario });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Searchz</Text>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Buscar marcas..."
-        placeholderTextColor={C.prataEscuro}
-        value={search}
-        onChangeText={setSearch}
-      />
+      <TextInput style={styles.searchInput} placeholder="Buscar marcas..." placeholderTextColor={C.prataEscuro} value={search} onChangeText={setSearch} />
       <FlatList
         data={filtered}
-        numColumns={2}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <View style={styles.brandCard}>
-            <Image source={{ uri: item.image }} style={styles.brandImage} />
-            <Text style={styles.brandName}>{item.name}</Text>
-            <Text style={styles.category}>{item.category}</Text>
-          </View>
-        )}
-      />
-    </SafeAreaView>
-  );
-}
-
-// 3. PERFIL
-function ProfileScreen() {
-  const [name, setName] = useState('Lucas Moda');
-  const [bio, setBio] = useState('Fashion enthusiast');
-  const [editing, setEditing] = useState(false);
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Perfil</Text>
-      <View style={styles.profileContainer}>
-        <Image source={{ uri: 'https://picsum.photos/200?random=100' }} style={styles.profilePic} />
-        <Text style={styles.profileName}>{name}</Text>
-        <Text style={styles.profileBio}>{bio}</Text>
-        <TouchableOpacity style={styles.editButton} onPress={() => setEditing(!editing)}>
-          <Text style={styles.editButtonText}>Editar Perfil</Text>
-        </TouchableOpacity>
-
-        {editing && (
-          <View style={styles.editPanel}>
-            <TextInput style={styles.editInput} value={name} onChangeText={setName} placeholder="Nome" placeholderTextColor={C.prataEscuro} />
-            <TextInput style={styles.editInput} value={bio} onChangeText={setBio} placeholder="Bio" placeholderTextColor={C.prataEscuro} multiline />
-            <TouchableOpacity style={styles.saveButton} onPress={() => setEditing(false)}>
-              <Text style={styles.saveButtonText}>Salvar</Text>
+          <View style={styles.searchCard}>
+            <Image source={{ uri: item.foto }} style={styles.collabImage} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: C.prata, fontWeight: '700' }}>{item.nome}</Text>
+              <Text style={{ color: C.prataEscuro, fontSize: 12 }}>{item.usuario}</Text>
+              <Text style={{ color: C.roxoClaro, fontSize: 11 }}>{item.categoria}</Text>
+              <Text style={{ color: C.prataEscuro, fontSize: 10 }}>{item.seguidores.length} seguidores</Text>
+            </View>
+            {/* ✅ CORREÇÃO: Marcas TAMBÉM podem seguir outras marcas */}
+            <TouchableOpacity
+              style={[styles.btnSeguir, usuario.seguindo && usuario.seguindo.includes(item.id) && styles.btnSeguindo]}
+              onPress={() => seguirMarca(item.id)}
+            >
+              <Text style={{ color: C.branco, fontSize: 12 }}>
+                {usuario.seguindo && usuario.seguindo.includes(item.id) ? 'Seguindo' : 'Seguir'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
-      </View>
-    </SafeAreaView>
-  );
-}
-
-// 4. DROPS
-function DropsScreen() {
-  return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Drops</Text>
-      <FlatList
-        data={DROPS}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.dropCard}>
-            <Image source={{ uri: item.image }} style={styles.dropImage} />
-            <View style={styles.dropInfo}>
-              <Text style={styles.dropBrand}>{item.brand}</Text>
-              <Text style={styles.dropName}>{item.name}</Text>
-              <Text style={styles.dropPrice}>{item.price}</Text>
-              <TouchableOpacity style={styles.notifyButton}>
-                <Text style={styles.notifyText}>Me notificar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       />
     </SafeAreaView>
   );
 }
 
-// 5. COLLABZ
-function CollabzScreen() {
-  const [selectedBrand, setSelectedBrand] = useState(null);
+// ============ TELA PERFIL ============
+function ProfileScreen({ usuario, setUsuario }) {
+  const [editing, setEditing] = useState(false);
+  const [nome, setNome] = useState(usuario.nome);
+  const [bioEdit, setBioEdit] = useState(usuario.bio);
+  const [fotoEdit, setFotoEdit] = useState(usuario.foto);
 
-  if (selectedBrand) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.chatHeader}>
-          <TouchableOpacity onPress={() => setSelectedBrand(null)}>
-            <Ionicons name="arrow-back" size={24} color={C.prata} />
-          </TouchableOpacity>
-          <Text style={styles.chatTitle}>{selectedBrand.name}</Text>
-        </View>
-        <View style={styles.chatArea}>
-          <View style={styles.brandMessage}>
-            <Text>Olá! Como podemos ajudar na sua collab?</Text>
-          </View>
-          <View style={styles.userMessage}>
-            <Text style={{ color: C.branco }}>Tenho interesse em uma parceria!</Text>
-          </View>
-        </View>
-        <View style={styles.chatInputContainer}>
-          <TextInput style={styles.chatInput} placeholder="Digite sua mensagem..." placeholderTextColor={C.prataEscuro} />
-          <TouchableOpacity style={styles.sendButton}>
-            <Ionicons name="send" size={20} color={C.branco} />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Collabz</Text>
-      <FlatList
-        data={BRANDS}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.collabCard} onPress={() => setSelectedBrand(item)}>
-            <Image source={{ uri: item.image }} style={styles.collabImage} />
-            <View>
-              <Text style={styles.brandName}>{item.name}</Text>
-              <Text style={styles.category}>{item.category}</Text>
-            </View>
-            <Ionicons name="chatbubble-ellipses" size={24} color={C.roxo} style={{ marginLeft: 'auto' }} />
-          </TouchableOpacity>
-        )}
-      />
-    </SafeAreaView>
-  );
-}
-
-// APP PRINCIPAL
-export default function App() {
-  const [tab, setTab] = useState('home');
-
-  const screens = {
-    home: <HomeScreen />,
-    searchz: <SearchzScreen />,
-    drops: <DropsScreen />,
-    collabz: <CollabzScreen />,
-    profile: <ProfileScreen />,
+  const salvarPerfil = () => {
+    setUsuario({ ...usuario, nome, bio: bioEdit, foto: fotoEdit });
+    setEditing(false);
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      {screens[tab]}
-      <View style={styles.tabBar}>
-        {[
-          { key: 'home', icon: 'home', label: 'Home' },
-          { key: 'searchz', icon: 'search', label: 'Searchz' },
-          { key: 'drops', icon: 'flash', label: 'Drops' },
-          { key: 'collabz', icon: 'chatbubbles', label: 'Collabz' },
-          { key: 'profile', icon: 'person', label: 'Perfil' },
-        ].map(t => (
-          <TouchableOpacity key={t.key} style={styles.tab} onPress={() => setTab(t.key)}>
-            <Ionicons
-              name={tab === t.key ? t.icon : `${t.icon}-outline`}
-              size={22}
-              color={tab === t.key ? C.prata : C.prataEscuro}
-            />
-            <Text style={{ color: tab === t.key ? C.prata : C.prataEscuro, fontSize: 10 }}>
-              {t.label}
-            </Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView>
+        <View style={{ paddingTop: 50, alignItems: 'center', paddingHorizontal: 20 }}>
+          <TouchableOpacity style={{ position: 'absolute', right: 16, top: 55 }} onPress={() => setEditing(!editing)}>
+            <Text style={{ color: C.roxo }}>Editar</Text>
           </TouchableOpacity>
-        ))}
-      </View>
-    </View>
+
+          <Image source={{ uri: usuario.foto }} style={styles.profilePic} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 5 }}>
+            <Text style={{ color: C.prata, fontSize: 22, fontWeight: '700' }}>{usuario.nome}</Text>
+            {usuario.tipo === 'marca' && (
+              <Ionicons name="checkmark-circle" size={20} color={C.roxo} />
+            )}
+          </View>
+          <Text style={{ color: C.prataEscuro, fontSize: 14 }}>{usuario.usuario}</Text>
+          <Text style={{ color: C.roxoClaro, fontSize: 11, marginTop: 2 }}>{usuario.tipo === 'marca' ? '🏪 Marca' : '👤 Cliente'}</Text>
+          <Text style={{ color: C.prataEscuro, textAlign: 'center', marginTop: 8 }}>{usuario.bio}</Text>
+
+          {usuario.tipo === 'marca' && (
+            <>
+              <Text style={{ color: C.roxoClaro, fontSize: 13, marginTop: 5 }}>{usuario.categoria}</Text>
+              <View style={{ flexDirection: 'row', gap: 20, marginTop: 10 }}>
+                <Text style={{ color: C.prata, fontWeight: '700' }}>{usuario.posts.length} posts</Text>
+                <Text style={{ color: C.prata, fontWeight: '700' }}>{usuario.seguidores.length} seguidores</Text>
+                <Text style={{ color: C.prata, fontWeight: '700' }}>{usuario.seguindo ? usuario.seguindo.length : 0} seguindo</Text>
+              </View>
+
+              {usuario.portfolio && usuario.portfolio.length > 0 && (
+                <View style={{ marginTop: 20, width: '100%' }}>
+                  <Text style={{ color: C.prata, fontWeight: '700', marginBottom: 8 }}>Portfólio</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {usuario.portfolio.map((img, i) => (
+                      <Image key={i} source={{ uri: img }} style={styles.portfolioImg} />
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {usuario.posts && usuario.posts.length > 0 && (
+                <View style={{ marginTop: 20, width: '100%' }}>
+                  <Text style={{ color: C.prata, fontWeight: '700', marginBottom: 8 }}>Posts recentes</Text>
+                  {usuario.posts.slice(-3).reverse().map((post, i) => (
+                    <View key={i} style={{ marginBottom: 10 }}>
+                      <Image source={{ uri: post.imagem }} style={{ width: '100%', height: 200, borderRadius: 12 }} />
+                      <Text style={{ color: C.prataEscuro, marginTop: 4 }}>{post.desc}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+
+          {usuario.tipo === 'cliente' && usuario.seguindo && (
+            <View style={{ marginTop: 20, width: '100%' }}>
+              <Text style={{ color: C.prata, fontWeight: '700', marginBottom: 10 }}>Seguindo ({usuario.seguindo.length})</Text>
+              <Text style={{ color: C.prataEscuro, fontSize: 12 }}>Marcas que você segue aparecerão na sua timeline.</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <Modal visible={editing} animationType="slide" transparent>
+        <View style={styles.modal}>
+          <View style={styles.modalContent}>
+            <Text style={{ color: C.prata, fontSize: 20, fontWeight: '700', marginBottom: 20 }}>Editar Perfil</Text>
+            <Text style={{ color: C.prataEscuro, fontSize: 11, marginBottom: 4 }}>URL da Foto</Text>
+            <TextInput style={styles.editInput} value={fotoEdit} onChangeText={setFotoEdit} placeholderTextColor={C.prataEscuro} />
+            <Text style={{ color: C.prataEscuro, fontSize: 11, marginBottom: 4, marginTop: 10 }}>Nome</Text>
+            <TextInput style={styles.editInput} value={nome} onChangeText={setNome} placeholderTextColor={C.prataEscuro} />
+            <Text style={{ color: C.prataEscuro, fontSize: 11, marginBottom: 4, marginTop: 10 }}>Bio</Text>
+            <TextInput style={[styles.editInput, { height: 80 }]} value={bioEdit} onChangeText={setBioEdit} multiline placeholderTextColor={C.prataEscuro} />
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+              <TouchableOpacity style={styles.btnCancelarModal} onPress={() => setEditing(false)}>
+                <Text style={{ color: C.prataEscuro }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnSalvar} onPress={salvarPerfil}>
+                <Text style={{ color: C.branco, fontWeight: '700' }}>Salvar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg, paddingTop: 50 },
-  logo: { color: C.prata, fontSize: 28, fontWeight: '900', letterSpacing: 4, paddingLeft: 16, marginBottom: 10 },
-  header: { color: C.prata, fontSize: 26, fontWeight: '900', letterSpacing: 3, paddingLeft: 16, marginBottom: 10 },
-  card: { marginBottom: 20 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, marginBottom: 8 },
-  brandName: { color: C.prata, fontWeight: '700', marginLeft: 8 },
-  postImage: { width: '100%', height: 400 },
-  cardFooter: { paddingHorizontal: 12, paddingVertical: 8 },
-  likes: { color: C.prata, fontWeight: 'bold' },
-  desc: { color: C.prataEscuro, marginTop: 4 },
-  searchInput: { backgroundColor: C.card, color: C.branco, borderRadius: 25, padding: 12, marginHorizontal: 16, marginBottom: 15, borderWidth: 1, borderColor: C.borda },
-  brandCard: { flex: 1, margin: 8, backgroundColor: C.card, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: C.borda },
-  brandImage: { width: '100%', height: 140, borderRadius: 8, marginBottom: 8 },
-  category: { color: C.roxoClaro, fontSize: 12 },
-  profileContainer: { alignItems: 'center', padding: 20 },
-  profilePic: { width: 100, height: 100, borderRadius: 50, marginBottom: 15, borderWidth: 2, borderColor: C.prata },
-  profileName: { color: C.prata, fontSize: 22, fontWeight: '700' },
-  profileBio: { color: C.prataEscuro, marginTop: 5, textAlign: 'center' },
-  editButton: { marginTop: 15, borderWidth: 1, borderColor: C.prata, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 8 },
-  editButtonText: { color: C.prata },
-  editPanel: { width: '100%', marginTop: 20 },
-  editInput: { backgroundColor: C.card, color: C.branco, borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: C.borda },
-  saveButton: { backgroundColor: C.roxo, borderRadius: 20, padding: 12, alignItems: 'center', marginTop: 15 },
-  saveButtonText: { color: C.branco, fontWeight: '700' },
-  dropCard: { flexDirection: 'row', backgroundColor: C.card, marginHorizontal: 16, marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: C.borda },
-  dropImage: { width: 100, height: 100 },
-  dropInfo: { flex: 1, padding: 12 },
-  dropBrand: { color: C.roxoClaro, fontSize: 12 },
-  dropName: { color: C.prata, fontWeight: '700' },
-  dropPrice: { color: C.prata, fontWeight: '700', marginTop: 4 },
-  notifyButton: { backgroundColor: C.roxo, borderRadius: 20, padding: 8, alignItems: 'center', marginTop: 8 },
-  notifyText: { color: C.branco, fontWeight: '700', fontSize: 12 },
-  collabCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, marginHorizontal: 16, marginBottom: 12, padding: 15, borderRadius: 12, borderWidth: 1, borderColor: C.borda },
-  collabImage: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
-  chatHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: C.borda },
-  chatTitle: { color: C.prata, fontSize: 18, fontWeight: '700', marginLeft: 15 },
-  chatArea: { flex: 1, padding: 16 },
-  brandMessage: { backgroundColor: '#2a2a2a', padding: 12, borderRadius: 15, marginBottom: 10, alignSelf: 'flex-start' },
-  userMessage: { backgroundColor: C.roxo, padding: 12, borderRadius: 15, marginBottom: 10, alignSelf: 'flex-end' },
-  chatInputContainer: { flexDirection: 'row', padding: 10, borderTopWidth: 1, borderColor: C.borda },
-  chatInput: { flex: 1, backgroundColor: C.card, color: C.branco, borderRadius: 25, paddingHorizontal: 15 },
-  sendButton: { backgroundColor: C.roxo, width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginLeft: 10 },
-  tabBar: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.borda, backgroundColor: C.bg, paddingBottom: 30, paddingTop: 10 },
-  tab: { flex: 1, alignItems: 'center' },
-});
+// ============ TELA DROPS ============
+function DropsScreen({ usuario, marcas, setMarcas }) {
+  const [novoDropImg, setNovoDropImg] = useState('');
+  const [novoDropNome, setNovoDropNome] = useState('');
+  const [novoDropPreco, setNovoDropPreco] = useState('');
+  const [mostrarForm, setMostrarForm] = useState(false);
+
+  const adicionarDrop = () => {
+    if (!novoDropImg.trim() || !novoDropNome.trim() || !novoDropPreco.trim()) return;
+    const marcasAtualizadas = marcas.map(m => {
+      if (m.id === usuario.id) {
+        const novoPortfolio = [...(m.portfolio || []), novoDropImg.trim()];
+        return { ...m, portfolio: novoPortfolio };
+      }
+      return m;
+    });
+    setMarcas(marcasAtualizadas);
+    setNovoDropImg('');
+    setNovoDropNome('');
+    setNovoDropPreco('');
+    setMostrarForm(false);
+  };
+
+  // Coletar produtos de todas as marcas
+  let todosDrops = [];
+  marcas.forEach(marca => {
+    if (marca.tipo === 'marca' && marca.portfolio) {
+      marca.portfolio.forEach(img => {
+        todosDrops.push({
+          id: 'd' + Math.random(),
+          marcaNome: marca.nome,
+          marcaFoto: marca.foto,
+          imagem: img,
+          nome: 'Produto ' + marca.nome,
+          preco: 'Sob consulta'
+        });
+      });
+    }
+  });
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.topBar}>
+        <Text style={styles.headerSemPadding}>Drops 🔥</Text>
+        {usuario.tipo === 'm
