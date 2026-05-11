@@ -1069,4 +1069,3 @@ const styles = StyleSheet.create({
   tabBar: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.borda, backgroundColor: C.bg, paddingBottom: 30, paddingTop: 10 },
   tab: { flex: 1, alignItems: 'center' },
 });
-pronto em 15-25 minutos! 🚀🔐
